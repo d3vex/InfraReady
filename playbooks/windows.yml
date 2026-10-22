@@ -1,0 +1,31 @@
+---
+- name: Configuration de WIN-DC01
+  hosts: windows
+
+  tasks:
+    - name: Créer le dossier de partage du lab
+      ansible.windows.win_file:
+        path: C:\Lab\Partage
+        state: directory
+
+    - name: Créer un groupe AD pour le lab
+      microsoft.ad.group:
+        name: GRP-Lab
+        scope: global
+        state: present
+
+    - name: S'assurer que le service DNS tourne
+      ansible.windows.win_service:
+        name: DNS
+        state: started
+        start_mode: auto
+
+    - name: Vérifier que le domaine répond
+      ansible.windows.win_shell: (Get-ADDomain).DNSRoot
+      register: domaine
+      changed_when: false
+      check_mode: false
+
+    - name: Afficher le domaine
+      ansible.builtin.debug:
+        msg: "Domaine : {{ domaine.stdout | trim }}"

@@ -1,0 +1,72 @@
+---
+- name: Configuration de LINUX01
+  hosts: linux
+  become: true
+
+  vars:
+    admin_group: webadmins
+    admin_user: alice
+    data_dir: /srv/data
+    disk_uuid: "b645ea10-9d47-4015-be21-fdf77ed5047f"
+    mount_point: /mnt/data
+
+  tasks:
+    - name: Créer le groupe {{ admin_group }}
+      ansible.builtin.group:
+        name: "{{ admin_group }}"
+        state: present
+
+    - name: Créer l'utilisateur {{ admin_user }}
+      ansible.builtin.user:
+        name: "{{ admin_user }}"
+        shell: /bin/bash
+        groups: "{{ admin_group }}"
+        append: true
+        create_home: true
+
+    - name: Créer le dossier {{ data_dir }}
+      ansible.builtin.file:
+        path: "{{ data_dir }}"
+        state: directory
+        owner: root
+        group: "{{ admin_group }}"
+        mode: "0770"
+
+    - name: Installer nginx
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Activer et démarrer nginx
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: true
+
+    - name: Monter le disque de données (UUID)
+      ansible.posix.mount:
+        src: "UUID={{ disk_uuid }}"
+        path: "{{ mount_point }}"
+        fstype: ext4
+        opts: defaults
+        state: mounted
+
+    - name: Permissions du point de montage
+      ansible.builtin.file:
+        path: "{{ mount_point }}"
+        state: directory
+        owner: root
+        group: "{{ admin_group }}"
+        mode: "0770"
+
+    # --- Vérifications après exécution ---
+    - name: Vérifier que nginx répond
+      ansible.builtin.uri:
+        url: http://localhost
+        status_code: 200
+
+    - name: Vérifier que le disque est monté
+      ansible.builtin.command: findmnt {{ mount_point }}
+      changed_when: false
