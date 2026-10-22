@@ -1,0 +1,4 @@
+---
+extends: default
+ignore: |
+  inventory/group_vars/windows/vault.yml
