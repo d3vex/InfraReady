@@ -27,7 +27,7 @@ jobs:
           pip install ansible-core ansible-lint yamllint
 
       - name: Install ansible collection
-        run: ansible-galaxy collection install -r requirements.txt
+        run: ansible-galaxy collection install -r requirements.yml
 
       - name: Validate Ansible configuration
         run: ansible-config dump --only-changed
