@@ -1,0 +1,5 @@
+---
+warn_list:
+  - yaml[line-length]
+  - yaml[empty-lines]
+  - package-latest

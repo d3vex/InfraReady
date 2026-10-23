@@ -1,4 +1,3 @@
-
 ---
 - name: Mettre à jour les serveurs Linux
   hosts: linux
