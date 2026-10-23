@@ -1,0 +1,4 @@
+---
+windows_exporter_version: "0.32.0"
+windows_exporter_port: 9182
+windows_exporter_collectors: "cpu,logical_disk,net,os,service,system,memory"

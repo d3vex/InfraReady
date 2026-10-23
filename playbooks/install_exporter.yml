@@ -1,0 +1,12 @@
+---
+- name: Installer Windows Exporter
+  hosts: windows
+  gather_facts: false
+  roles:
+    - windows_exporter
+
+- name: Installer Node Exporter
+  hosts: linux
+  become: true
+  roles:
+    - node_exporter

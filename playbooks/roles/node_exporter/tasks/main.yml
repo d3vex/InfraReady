@@ -1,0 +1,87 @@
+---
+- name: Créer le groupe système
+  ansible.builtin.group:
+    name: "{{ node_exporter_user }}"
+    system: true
+    state: present
+
+- name: Créer l'utilisateur système
+  ansible.builtin.user:
+    name: "{{ node_exporter_user }}"
+    group: "{{ node_exporter_user }}"
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+
+- name: Créer le dossier d'installation
+  ansible.builtin.file:
+    path: /opt/node_exporter
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Mettre à jour le cache apt
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Installer les prérequis pour décompresser l'archive (tar, gzip)
+  ansible.builtin.package:
+    name:
+      - tar
+      - gzip
+    state: present
+    update_cache: true
+
+- name: Télécharger et extraire Node Exporter
+  ansible.builtin.unarchive:
+    src: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz"
+    dest: /tmp
+    remote_src: true
+    creates: "/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter"
+
+- name: Installer le binaire
+  ansible.builtin.copy:
+    src: "/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter"
+    dest: /opt/node_exporter/node_exporter
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Redémarrer Node Exporter
+
+- name: Installer le service systemd
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/node_exporter.service
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=Prometheus Node Exporter
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      User={{ node_exporter_user }}
+      Group={{ node_exporter_user }}
+      ExecStart=/opt/node_exporter/node_exporter --web.listen-address=:{{ node_exporter_port }}
+      Restart=on-failure
+      RestartSec=5s
+
+      [Install]
+      WantedBy=multi-user.target
+  notify:
+    - Recharger systemd
+    - Redémarrer Node Exporter
+
+- name: Activer et démarrer Node Exporter
+  ansible.builtin.systemd:
+    name: node_exporter
+    enabled: true
+    state: started
+    daemon_reload: true
+

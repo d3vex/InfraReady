@@ -1,0 +1,19 @@
+
+---
+- name: Mettre à jour les serveurs Linux
+  hosts: linux
+  become: true
+
+  tasks:
+    - name: Mettre à jour les paquets sur Debian et Ubuntu
+      ansible.builtin.apt:
+        update_cache: true
+        upgrade: dist
+      when: ansible_os_family == "Debian"
+
+    - name: Mettre à jour les paquets sur Rocky Linux et RHEL
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+        update_cache: true
+      when: ansible_os_family == "RedHat"
